@@ -12,6 +12,5 @@
     },
     "a": true,
     "aaaa": false,
-    "purge_unknown_records": false,
     "ttl": 300
 }
