@@ -67,6 +67,9 @@ def records_list(*ips: str) -> list:
         records_by_type[record_type] = ip
 
     for subdomain in config['desec']['subdomain']:
+        if subdomain == "@":
+            subdomain = ""
+
         for record_type, ip in records_by_type.items():
             records.append({
                 "subname": subdomain,
