@@ -97,7 +97,10 @@ async def main() -> None:
 
     ips = await asyncio.gather(*tasks)
     records = records_list(*(ip for ip in ips if ip))
-    await update_records(records)
+
+    while True:
+        await update_records(records)
+        asyncio.sleep(30 * 60)
 
 
 if __name__ == "__main__":
