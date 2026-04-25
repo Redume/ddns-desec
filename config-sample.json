@@ -1,0 +1,17 @@
+{
+    "desec": {
+        "auth": {
+            "api_token": "API_TOKEN_CHANGE",
+            "domain": "example.com"
+        },
+        "subdomain": ["redume"]
+    },
+    "providers": {
+        "ipv4_provider": "https://myip.wtf",
+        "ipv6_provider": "https://cloudflare.trace"
+    },
+    "a": true,
+    "aaaa": false,
+    "purge_unknown_records": false,
+    "ttl": 300
+}
