@@ -105,8 +105,8 @@ async def update_records(records: list) -> bool:
             return True
 
 
-async def main() -> None:
-    logging.info("ddns started")
+async def run() -> None:
+    logging.info("Checking changes")
     tasks = []
 
     if config.get("a", True):
@@ -115,12 +115,15 @@ async def main() -> None:
         tasks.append(get_ip(6))
 
     ips = await asyncio.gather(*tasks)
+    records = records_list(*(ip for ip in ips if ip))
+    await update_records(records)
+    tasks.clear()
 
+async def main() -> None:
+    logging.info("ddns started")
     while True:
-        records = records_list(*(ip for ip in ips if ip))
-        await update_records(records)
+        await run()
         await asyncio.sleep(config['update_min'] * 60)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
