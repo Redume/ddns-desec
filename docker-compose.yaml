@@ -1,6 +1,6 @@
 services:
   ddns:
-    image: ghcr.io/redume/shirino:main
+    image: ghcr.io/redume/ddns-desec:main
     volumes:
       - './config.json:/config.json:ro'
 
