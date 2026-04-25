@@ -8,7 +8,7 @@
     },
     "providers": {
         "ipv4_provider": "https://myip.wtf",
-        "ipv6_provider": "https://cloudflare.trace"
+        "ipv6_provider": "https://ipv6.myip.wtf"
     },
     "a": true,
     "aaaa": false,
