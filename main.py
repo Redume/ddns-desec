@@ -2,11 +2,17 @@ import asyncio
 import aiohttp
 import ipaddress
 import orjson
+import logging
 
 from http import HTTPStatus
 
 config = orjson.loads(open('config.json', "r", encoding='utf-8').read())
+logging.basicConfig(
+    level=config['log_level'].upper(),
+    format="%(asctime)s %(levelname)s %(message)s",
+)
 
+logger = logging.getLogger(__name__)
 
 def parse_ip(text: str, version: int) -> str:
     for part in text.replace("=", " ").split():
@@ -32,8 +38,13 @@ async def get_ip(version: int) -> str | None:
             async with session.get(config['providers'][provider_key]) as res:
                 if not HTTPStatus(res.status).is_success:
                     raise RuntimeError(f'IPv{version} provider return error')
-                return parse_ip(await res.text(), version)
+
+                ip = parse_ip(await res.text(), version)
+                logging.debug(f"IPv{version} return {ip}")
+                return ip
+
     except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError, ValueError, RuntimeError):
+        logging.error(f"IPv{version} wasn't able to get")
         return None
 
  
@@ -69,6 +80,7 @@ def records_list(*ips: str) -> list:
 
 async def update_records(records: list) -> bool:
     if not records:
+        logging.info("subdomain is empty, skipping")
         return False
 
     async with aiohttp.ClientSession(
@@ -83,11 +95,15 @@ async def update_records(records: list) -> bool:
             json=records
         ) as res:
             if not HTTPStatus(res.status).is_success:
+                logger.error(await res.text())
                 return False
+
+            logging.info("Records is successfuly updated")
             return True
 
 
 async def main() -> None:
+    logging.info("ddns started")
     tasks = []
 
     if config.get("a", True):

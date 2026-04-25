@@ -12,5 +12,6 @@
     },
     "a": true,
     "aaaa": false,
-    "ttl": 3600
+    "ttl": 3600,
+    "log_level": "info"
 }
