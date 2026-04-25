@@ -67,22 +67,6 @@ def records_list(*ips: str) -> list:
     return records
 
 
-async def get_records() -> list:
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=3),
-    ) as session:
-        async with session.get(
-            f"https://desec.io/api/v1/domains/{config['desec']['auth']['domain']}/rrsets",
-            headers={
-                "Authorization": f"Token {config['desec']['auth']['api_token']}"
-            },
-        ) as res:
-            if not HTTPStatus(res.status).is_success:
-                raise RuntimeError("Error desec API") # change
-
-            return await res.json()
-
-
 async def update_records(records: list) -> bool:
     if not records:
         return False
@@ -103,10 +87,6 @@ async def update_records(records: list) -> bool:
             return True
 
 
-def delete_records() -> bool:
-    pass
-
-
 async def main() -> None:
     tasks = []
 
@@ -117,7 +97,7 @@ async def main() -> None:
 
     ips = await asyncio.gather(*tasks)
     records = records_list(*(ip for ip in ips if ip))
-
+    await update_records(records)
 
 
 if __name__ == "__main__":
