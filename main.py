@@ -119,7 +119,7 @@ async def main() -> None:
 
     while True:
         await update_records(records)
-        await asyncio.sleep(30 * 60)
+        await asyncio.sleep(config['update_min'] * 60)
 
 
 if __name__ == "__main__":
