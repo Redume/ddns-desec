@@ -20,8 +20,24 @@ async def get_ip(version: int) -> str:
             return (await res.text()).strip()
  
 
+async def get_records() -> list:
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=3),
+    ) as session:
+        async with session.get(
+            f'https://desec.io/api/v1/domains/{config['desec']['auth']['domain']}/rrsets', 
+            headers={
+                "Authorization": f"Token {config['desec']['auth']['api_token']}"
+            },
+        ) as res:
+            if not HTTPStatus(res.status).is_success:
+                raise RuntimeError("Error desec API") # change
+
+            return await res.json()
+
+
 async def main() -> None:
-   await get_ip(4)
+   pass
 
 if __name__ == "__main__":
     asyncio.run(main())
