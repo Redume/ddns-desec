@@ -21,43 +21,25 @@ def parse_ip(text: str, version: int) -> str:
     raise ValueError(f"IPv{version} provider did not return an IP")
 
 
-async def get_ip(version: int) -> str:
+async def get_ip(version: int) -> str | None:
     provider_key = f"ipv{version}_provider"
 
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=3),
-        headers={"User-Agent": "curl/8.0.0"},
-    ) as session:
-        async with session.get(config['providers'][provider_key]) as res:
-            if not HTTPStatus(res.status).is_success:
-                raise RuntimeError(f'IPv{version} provider return error')
-            return parse_ip(await res.text(), version)
-
-
-async def get_ip_or_none(version: int) -> str | None:
     try:
-        return await get_ip(version)
-    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, RuntimeError):
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=3),
+            headers={"User-Agent": "curl/8.0.0"},
+        ) as session:
+            async with session.get(config['providers'][provider_key]) as res:
+                if not HTTPStatus(res.status).is_success:
+                    raise RuntimeError(f'IPv{version} provider return error')
+                return parse_ip(await res.text(), version)
+    except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError, ValueError, RuntimeError):
         return None
+
  
-
-async def get_records() -> list:
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=3),
-    ) as session:
-        async with session.get(
-            f'https://desec.io/api/v1/domains/{config['desec']['auth']['domain']}/rrsets', 
-            headers={
-                "Authorization": f"Token {config['desec']['auth']['api_token']}"
-            },
-        ) as res:
-            if not HTTPStatus(res.status).is_success:
-                raise RuntimeError("Error desec API") # change
-
-            return await res.json()
-
-async def update_records(*ips: str) -> bool:
-    records = []
+def records_list(*ips: str) -> list:
+    records: list = []
+    records_by_type = {}
 
     for ip in ips:
         ip_version = ipaddress.ip_address(ip).version
@@ -71,7 +53,10 @@ async def update_records(*ips: str) -> bool:
                 continue
             record_type = "AAAA"
 
-        for subdomain in config['desec']['subdomain']:
+        records_by_type[record_type] = ip
+
+    for subdomain in config['desec']['subdomain']:
+        for record_type, ip in records_by_type.items():
             records.append({
                 "subname": subdomain,
                 "type": record_type,
@@ -79,6 +64,26 @@ async def update_records(*ips: str) -> bool:
                 "ttl": config['ttl'],
             })
 
+    return records
+
+
+async def get_records() -> list:
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=3),
+    ) as session:
+        async with session.get(
+            f"https://desec.io/api/v1/domains/{config['desec']['auth']['domain']}/rrsets",
+            headers={
+                "Authorization": f"Token {config['desec']['auth']['api_token']}"
+            },
+        ) as res:
+            if not HTTPStatus(res.status).is_success:
+                raise RuntimeError("Error desec API") # change
+
+            return await res.json()
+
+
+async def update_records(records: list) -> bool:
     if not records:
         return False
 
@@ -91,23 +96,33 @@ async def update_records(*ips: str) -> bool:
                 "Authorization": f"Token {config['desec']['auth']['api_token']}",
                 "Content-Type": "application/json"
             },
-            json={"rrsets": records}
+            json=records
         ) as res:
             if not HTTPStatus(res.status).is_success:
                 return False
             return True
-    
+
+
+async def create_records(records: list) -> bool:
+    return await update_records(records)
+
+
+def delete_records() -> bool:
+    pass
+
 
 async def main() -> None:
     tasks = []
 
     if config.get("a", True):
-        tasks.append(get_ip_or_none(4))
+        tasks.append(get_ip(4))
     if config.get("aaaa", True):
-        tasks.append(get_ip_or_none(6))
+        tasks.append(get_ip(6))
 
     ips = await asyncio.gather(*tasks)
-    print(await update_records(*(ip for ip in ips if ip)))
+    records = records_list(*(ip for ip in ips if ip))
+    
+
 
 if __name__ == "__main__":
     asyncio.run(main())
