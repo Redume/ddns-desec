@@ -103,10 +103,6 @@ async def update_records(records: list) -> bool:
             return True
 
 
-async def create_records(records: list) -> bool:
-    return await update_records(records)
-
-
 def delete_records() -> bool:
     pass
 
@@ -121,7 +117,7 @@ async def main() -> None:
 
     ips = await asyncio.gather(*tasks)
     records = records_list(*(ip for ip in ips if ip))
-    
+
 
 
 if __name__ == "__main__":
