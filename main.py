@@ -115,9 +115,9 @@ async def main() -> None:
         tasks.append(get_ip(6))
 
     ips = await asyncio.gather(*tasks)
-    records = records_list(*(ip for ip in ips if ip))
 
     while True:
+        records = records_list(*(ip for ip in ips if ip))
         await update_records(records)
         await asyncio.sleep(config['update_min'] * 60)
 
