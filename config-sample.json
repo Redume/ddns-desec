@@ -12,5 +12,5 @@
     },
     "a": true,
     "aaaa": false,
-    "ttl": 300
+    "ttl": 3600
 }
