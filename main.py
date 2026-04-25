@@ -100,7 +100,7 @@ async def main() -> None:
 
     while True:
         await update_records(records)
-        asyncio.sleep(30 * 60)
+        await asyncio.sleep(30 * 60)
 
 
 if __name__ == "__main__":
