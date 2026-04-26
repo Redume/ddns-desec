@@ -48,7 +48,7 @@ async def get_ip(version: int) -> str | None:
         return None
 
  
-def records_list(*ips: str) -> list:
+def records_list(ips: str) -> list:
     records: list = []
     records_by_type = {}
 
@@ -79,6 +79,35 @@ def records_list(*ips: str) -> list:
             })
 
     return records
+
+
+async def get_records() -> list:
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=3),
+    ) as session:
+        async with session.get(
+            f"https://desec.io/api/v1/domains/{config['desec']['auth']['domain']}/rrsets/",
+            headers={
+                "Authorization": f"Token {config['desec']['auth']['api_token']}",
+            },
+        ) as res:
+            if not HTTPStatus(res.status).is_success:
+                logger.error(await res.text())
+                return []
+
+            return await res.json()
+
+
+def changed_records(current_records: list, new_records: list) -> list:
+    current_map = {
+        (record["subname"], record["type"]): sorted(record["records"])
+        for record in current_records
+    }
+
+    return [
+        record for record in new_records
+        if current_map.get((record["subname"], record["type"])) != sorted(record["records"])
+    ]
 
 
 async def update_records(records: list) -> bool:
@@ -115,8 +144,15 @@ async def run() -> None:
         tasks.append(get_ip(6))
 
     ips = await asyncio.gather(*tasks)
-    records = records_list(*(ip for ip in ips if ip))
-    await update_records(records)
+    records = records_list(ip for ip in ips if ip is not None)
+
+    records_to_update = changed_records(await get_records(), records)
+    if not records_to_update:
+        logging.info("IP is not changed, skipping update")
+        return
+
+    await update_records(records_to_update)
+
     tasks.clear()
 
 async def main() -> None:
